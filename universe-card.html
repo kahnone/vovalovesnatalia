@@ -12,11 +12,11 @@
     #scene.dragging { cursor: grabbing; }
     .vignette { pointer-events: none; position: fixed; inset: 0; background: radial-gradient(circle at center, transparent 32%, rgba(0,0,12,.18) 68%, rgba(0,0,9,.84) 100%); }
     #memories { position: fixed; z-index: 2; inset: 0; pointer-events: none; overflow: hidden; }
-    .memory { position: absolute; left: 0; top: 0; width: min(122px, 31vw); padding: 5px; border: 1px solid rgba(255,220,237,.52); border-radius: 13px; background: rgba(40,15,46,.5); box-shadow: 0 8px 30px rgba(255,72,155,.18), inset 0 1px rgba(255,255,255,.16); backdrop-filter: blur(9px); color: #fff9fd; font: 500 clamp(10px, 1vw, 11px)/1.3 Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: .01em; text-align: center; opacity: 0; cursor: pointer; pointer-events: auto; transition: opacity .5s, border-color .2s; }
+    .memory { position: absolute; left: 0; top: 0; width: min(61px, 16vw); aspect-ratio: 1; padding: 3px; border: 1px solid rgba(255,220,237,.68); border-radius: 50%; background: rgba(40,15,46,.5); box-shadow: 0 7px 20px rgba(255,72,155,.3), inset 0 1px rgba(255,255,255,.35); color: #fff9fd; opacity: 0; cursor: pointer; pointer-events: auto; transition: opacity .5s, border-color .2s, box-shadow .2s; overflow: hidden; }
     .memory.visible { opacity: 1; }
-    .memory:hover { border-color: rgba(255,236,245,.95); }
-    .memory img { display: block; width: 100%; height: 76px; object-fit: cover; border-radius: 9px; }
-    .memory p { margin: 5px 3px 2px; }
+    .memory:hover { border-color: rgba(255,236,245,.95); box-shadow: 0 0 24px rgba(255,126,183,.8), inset 0 1px rgba(255,255,255,.5); }
+    .memory img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .memory p { display: none; }
     .controls { position: fixed; z-index: 3; right: clamp(18px, 4vw, 38px); top: clamp(18px, 4vw, 38px); }
     button { border: 1px solid rgba(255,255,255,.26); color: white; padding: 12px 16px; border-radius: 999px; background: rgba(9,12,33,.55); backdrop-filter: blur(12px); font: 500 13px/1 Inter, ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background .2s, transform .2s, border-color .2s; white-space: nowrap; }
     button:hover { background: rgba(255,255,255,.17); border-color: rgba(255,255,255,.65); transform: translateY(-2px); }
@@ -35,7 +35,6 @@
     #memory-viewer img { display: block; width: 100%; max-height: 68vh; object-fit: contain; border-radius: 15px; }
     #memory-viewer p { margin: 12px 14px 9px; text-align: center; font-size: 14px; opacity: .9; }
     #memory-viewer button { position: absolute; top: 13px; right: 13px; width: 34px; height: 34px; padding: 0; background: rgba(9,12,33,.82); font-size: 22px; line-height: 25px; }
-    @media (max-width: 520px) { .memory img { height: 86px; } }
   </style>
 </head>
 <body>

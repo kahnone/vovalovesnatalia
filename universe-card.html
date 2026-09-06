@@ -69,19 +69,16 @@
     }
     function heart(t) { const s=13; return { x:s*Math.pow(Math.sin(t),3), y:s*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))/16, z:0 }; }
     function glow(x,y,r,c,a=1) { const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0, c.replace(')', ','+a+')').replace('rgb','rgba')); g.addColorStop(.25,c.replace(')', ','+(a*.35)+')').replace('rgb','rgba')); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill(); }
-    function drawHeart(now) {
-      const scale=Math.min(w,h)*.017*zoom, cx=w/2, cy=h/2;
-      const silhouette = () => { const points=[]; for(let i=0;i<240;i++){ const p=heart(i/240*Math.PI*2); points.push({x:cx+p.x*scale,y:cy-p.y*scale}); } ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath(); };
-      const lightX=cx-scale*(6.2+Math.sin(yaw)*3), lightY=cy-scale*(8.2+Math.sin(pitch)*2.2);
-      ctx.save(); ctx.shadowColor='#ff205f'; ctx.shadowBlur=50; silhouette();
-      const body=ctx.createRadialGradient(lightX,lightY,scale*.6,cx,cy,scale*22);
-      body.addColorStop(0,'#fff7dc'); body.addColorStop(.1,'#ffd68a'); body.addColorStop(.28,'#ff7545'); body.addColorStop(.57,'#ef174b'); body.addColorStop(.82,'#9c0030'); body.addColorStop(1,'#350015'); ctx.fillStyle=body; ctx.fill(); ctx.shadowBlur=0;
-      ctx.save(); silhouette(); ctx.clip();
-      const shade=ctx.createRadialGradient(cx+scale*8,cy+scale*9,scale*2,cx+scale*7,cy+scale*8,scale*22); shade.addColorStop(0,'rgba(45,0,19,0)'); shade.addColorStop(.6,'rgba(48,0,20,.06)'); shade.addColorStop(1,'rgba(28,0,14,.7)'); ctx.fillStyle=shade; ctx.fillRect(cx-scale*20,cy-scale*24,scale*40,scale*48);
-      const gloss=ctx.createRadialGradient(lightX-scale*1.7,lightY-scale*1.7,0,lightX,lightY,scale*7); gloss.addColorStop(0,'rgba(255,255,255,.95)');gloss.addColorStop(.11,'rgba(255,235,201,.72)');gloss.addColorStop(.42,'rgba(255,157,95,.15)');gloss.addColorStop(1,'rgba(255,108,75,0)');ctx.fillStyle=gloss;ctx.beginPath();ctx.arc(lightX,lightY,scale*7,0,Math.PI*2);ctx.fill();
-      for(let i=0;i<18;i++){ const a=i*2.4+now*.0001*(i%4+1), r=scale*(2+(i%6)*1.4), x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r*.82, hot=ctx.createRadialGradient(x,y,0,x,y,scale*2.4); hot.addColorStop(0,'rgba(255,238,166,.22)');hot.addColorStop(.45,'rgba(255,89,48,.08)');hot.addColorStop(1,'rgba(255,30,83,0)');ctx.fillStyle=hot;ctx.beginPath();ctx.arc(x,y,scale*2.4,0,Math.PI*2);ctx.fill(); }
-      ctx.restore(); silhouette();ctx.strokeStyle='rgba(255,204,176,.48)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
-      glow(cx,cy,175,'rgb(255,43,91)',.24);
+    function drawHeart() {
+      const scale=Math.min(w,h)*.0085*zoom, cx=w/2, cy=h/2, sideX=scale*1.35, sideY=scale*2.05;
+      const silhouette = (dx=0,dy=0) => { const points=[]; for(let i=0;i<240;i++){ const p=heart(i/240*Math.PI*2); points.push({x:cx+p.x*scale+dx,y:cy-p.y*scale+dy}); } ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath(); };
+      ctx.save();
+      ctx.shadowColor='rgba(255,39,126,.7)'; ctx.shadowBlur=28; silhouette(sideX,sideY);
+      const side=ctx.createLinearGradient(cx-scale*10,cy-scale*10,cx+scale*14,cy+scale*18); side.addColorStop(0,'#ef4e8a');side.addColorStop(.38,'#d51e62');side.addColorStop(1,'#920033');ctx.fillStyle=side;ctx.fill();ctx.shadowBlur=0;
+      silhouette(); const face=ctx.createRadialGradient(cx-scale*5.2,cy-scale*8,scale*.2,cx,cy,scale*20); face.addColorStop(0,'#f58daf');face.addColorStop(.38,'#e55a8b');face.addColorStop(.75,'#d93772');face.addColorStop(1,'#bd1756');ctx.fillStyle=face;ctx.fill();
+      ctx.save();silhouette();ctx.clip(); const gloss=ctx.createRadialGradient(cx-scale*5.6,cy-scale*8.2,0,cx-scale*4.5,cy-scale*7,scale*7.5); gloss.addColorStop(0,'rgba(255,255,255,.58)');gloss.addColorStop(.22,'rgba(255,224,237,.24)');gloss.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=gloss;ctx.beginPath();ctx.arc(cx-scale*4.5,cy-scale*7,scale*7.5,0,Math.PI*2);ctx.fill();ctx.restore();
+      silhouette();ctx.strokeStyle='rgba(255,203,224,.62)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+      glow(cx+sideX*.45,cy+sideY*.4,scale*24,'rgb(255,43,126)',.25);
     }
     function orbitPoint(memory, angle) {
       const a=angle+memory.node, r=memory.radius, tilt=memory.tilt;

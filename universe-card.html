@@ -70,12 +70,19 @@
     function heart(t) { const s=13; return { x:s*Math.pow(Math.sin(t),3), y:s*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))/16, z:0 }; }
     function glow(x,y,r,c,a=1) { const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0, c.replace(')', ','+a+')').replace('rgb','rgba')); g.addColorStop(.25,c.replace(')', ','+(a*.35)+')').replace('rgb','rgba')); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill(); }
     function drawHeart() {
-      const points=[]; for(let i=0;i<180;i++){ let p=heart(i/180*Math.PI*2); p.z=Math.sin(i/180*Math.PI*6)*2; points.push(rotate(p)); }
       const scale=Math.min(w,h)*.017*zoom, cx=w/2, cy=h/2;
-      ctx.save(); ctx.shadowColor='#ff256b';ctx.shadowBlur=34;ctx.beginPath();
-      points.forEach((p,i)=>{ const x=cx+p.x*scale, y=cy-p.y*scale; i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();
+      const pathAtDepth = depth => { const points=[]; for(let i=0;i<180;i++){ const base=heart(i/180*Math.PI*2); points.push(rotate({x:base.x,y:base.y,z:depth})); } ctx.beginPath(); points.forEach((p,i)=>{ const x=cx+p.x*scale, y=cy-p.y*scale; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.closePath(); };
+      ctx.save();
+      for(let depth=-15; depth<9; depth+=3) { pathAtDepth(depth); ctx.fillStyle=`rgba(${90+depth*3},0,${45-depth},.76)`; ctx.fill(); }
+      ctx.shadowColor='#ff256b';ctx.shadowBlur=40;pathAtDepth(10);
       const fill=ctx.createRadialGradient(cx-20,cy-20,2,cx,cy,130); fill.addColorStop(0,'#fff0f5');fill.addColorStop(.25,'#ff86ad');fill.addColorStop(.72,'#e81459');fill.addColorStop(1,'#72002c');ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='rgba(255,222,236,.75)';ctx.lineWidth=1.2;ctx.stroke();ctx.restore();
-      glow(cx,cy,115,'rgb(255,25,102)',.12);
+      glow(cx,cy,145,'rgb(255,25,102)',.16);
+    }
+    function drawMemoryTethers() {
+      const cx=w/2, cy=h/2;
+      ctx.save(); ctx.lineWidth=1; ctx.lineCap='round';
+      memories.forEach(memory => { if (!memory.x) return; const alpha=Math.max(.08, Math.min(.38, memory.opacity*.38)); const gradient=ctx.createLinearGradient(cx,cy,memory.x,memory.y); gradient.addColorStop(0,`rgba(255,60,137,${alpha})`); gradient.addColorStop(.7,`rgba(255,189,222,${alpha*.7})`); gradient.addColorStop(1,'rgba(255,255,255,0)'); ctx.strokeStyle=gradient; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(memory.x,memory.y); ctx.stroke(); });
+      ctx.restore();
     }
     function positionMemories(now) {
       const scale = Math.min(w,h) * .92 * zoom, orbitSpeed = now * .00028;
@@ -86,7 +93,8 @@
         const depth = Math.max(.58, Math.min(1.08, f));
         memory.el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${depth})`;
         memory.el.style.zIndex = String(Math.round(1000 + p.z));
-        memory.el.style.opacity = p.z < -550 ? '.2' : String(Math.min(1, .45 + f * .65));
+        memory.opacity = p.z < -550 ? .2 : Math.min(1, .45 + f * .65); memory.x=x; memory.y=y;
+        memory.el.style.opacity = String(memory.opacity);
       });
     }
     function render(now) {
@@ -95,7 +103,7 @@
       for (const s of stars) { const p=rotate(s), f=600/(p.z+1900)*zoom; projected.push({s,p,x:w/2+p.x*f,y:h/2-p.y*f,f}); }
       projected.sort((a,b)=>a.p.z-b.p.z);
       for (const q of projected) { if(q.p.z<-1750) continue; const tw=.72+Math.sin(now*.0018+q.s.phase)*.28, r=Math.max(.35,q.s.size*q.f*2.2); ctx.globalAlpha=Math.min(1,.2+q.f)*tw; ctx.fillStyle=q.s.color; if(r<1.15) ctx.fillRect(q.x-r/2,q.y-r/2,r,r); else { ctx.beginPath();ctx.arc(q.x,q.y,r,0,Math.PI*2);ctx.fill(); } }
-      ctx.globalAlpha=1;ctx.shadowBlur=0; positionMemories(now); drawHeart();
+      ctx.globalAlpha=1;ctx.shadowBlur=0; positionMemories(now); drawMemoryTethers(); drawHeart();
       if(!dragging) targetYaw += .00065;
       yaw += (targetYaw-yaw)*.16; pitch += (targetPitch-pitch)*.16;
       requestAnimationFrame(render);

@@ -83,18 +83,30 @@
       ctx.restore(); silhouette();ctx.strokeStyle='rgba(255,204,176,.48)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
       glow(cx,cy,175,'rgb(255,43,91)',.24);
     }
+    function orbitPoint(memory, angle) {
+      const a=angle+memory.node, r=memory.radius, tilt=memory.tilt;
+      return rotate({ x:Math.cos(a)*r, y:Math.sin(a)*r*Math.sin(tilt), z:Math.sin(a)*r*Math.cos(tilt) });
+    }
+    function projectOrbitPoint(p) {
+      const scale=Math.min(w,h)*.92*zoom, f=500/(p.z+800);
+      return {x:w/2+p.x*scale*f,y:h/2-p.y*scale*f,f,z:p.z};
+    }
+    function drawOrbitRings() {
+      ctx.save(); ctx.lineWidth=1; ctx.setLineDash([3,8]);
+      memories.forEach(memory => { const points=[]; for(let i=0;i<=150;i++) points.push(projectOrbitPoint(orbitPoint(memory,i/150*Math.PI*2))); ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.strokeStyle='rgba(255,161,205,.18)'; ctx.stroke(); });
+      ctx.setLineDash([]); ctx.restore();
+    }
     function drawMemoryTethers() {
       const cx=w/2, cy=h/2;
-      ctx.save(); ctx.lineWidth=1; ctx.lineCap='round';
-      memories.forEach(memory => { if (!memory.x) return; const alpha=Math.max(.08, Math.min(.38, memory.opacity*.38)); const gradient=ctx.createLinearGradient(cx,cy,memory.x,memory.y); gradient.addColorStop(0,`rgba(255,60,137,${alpha})`); gradient.addColorStop(.7,`rgba(255,189,222,${alpha*.7})`); gradient.addColorStop(1,'rgba(255,255,255,0)'); ctx.strokeStyle=gradient; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(memory.x,memory.y); ctx.stroke(); });
+      ctx.save(); ctx.lineWidth=1.35; ctx.lineCap='round';
+      memories.forEach(memory => { if (!memory.x) return; const alpha=Math.max(.22, Math.min(.7, memory.opacity*.64)); const gradient=ctx.createLinearGradient(cx,cy,memory.x,memory.y); gradient.addColorStop(0,`rgba(255,125,177,${alpha})`); gradient.addColorStop(.72,`rgba(255,218,235,${alpha*.8})`); gradient.addColorStop(1,`rgba(255,255,255,${alpha*.45})`); ctx.strokeStyle=gradient; ctx.shadowColor='rgba(255,52,137,.48)'; ctx.shadowBlur=5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(memory.x,memory.y); ctx.stroke(); });
       ctx.restore();
     }
     function positionMemories(now) {
       const scale = Math.min(w,h) * .92 * zoom, orbitSpeed = now * .00028;
       memories.forEach((memory, index) => {
         const a = memory.angle + orbitSpeed * memory.speed;
-        const p = rotate({ x: Math.cos(a) * memory.radius, y: Math.sin(a * 1.7 + memory.wobble) * memory.height, z: Math.sin(a) * memory.radius });
-        const f = 500 / (p.z + 800), x = w / 2 + p.x * scale * f, y = h / 2 - p.y * scale * f;
+        const p = orbitPoint(memory, a), f = 500 / (p.z + 800), x = w / 2 + p.x * scale * f, y = h / 2 - p.y * scale * f;
         const depth = Math.max(.58, Math.min(1.08, f));
         memory.el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${depth})`;
         memory.el.style.zIndex = String(Math.round(1000 + p.z));
@@ -108,7 +120,7 @@
       for (const s of stars) { const p=rotate(s), f=600/(p.z+1900)*zoom; projected.push({s,p,x:w/2+p.x*f,y:h/2-p.y*f,f}); }
       projected.sort((a,b)=>a.p.z-b.p.z);
       for (const q of projected) { if(q.p.z<-1750) continue; const tw=.72+Math.sin(now*.0018+q.s.phase)*.28, r=Math.max(.35,q.s.size*q.f*2.2); ctx.globalAlpha=Math.min(1,.2+q.f)*tw; ctx.fillStyle=q.s.color; if(r<1.15) ctx.fillRect(q.x-r/2,q.y-r/2,r,r); else { ctx.beginPath();ctx.arc(q.x,q.y,r,0,Math.PI*2);ctx.fill(); } }
-      ctx.globalAlpha=1;ctx.shadowBlur=0; positionMemories(now); drawMemoryTethers(); drawHeart(now);
+      ctx.globalAlpha=1;ctx.shadowBlur=0; drawOrbitRings(); positionMemories(now); drawMemoryTethers(); drawHeart(now);
       if(!dragging) targetYaw += .00065;
       yaw += (targetYaw-yaw)*.16; pitch += (targetPitch-pitch)*.16;
       requestAnimationFrame(render);
@@ -123,7 +135,7 @@
       const image = document.createElement('img'); image.src = memory.photo; image.alt = memory.text;
       const caption = document.createElement('p'); caption.textContent = memory.text; el.append(image, caption); memoriesEl.append(el);
       el.onclick = () => { viewerImage.src = memory.photo; viewerImage.alt = memory.text; viewerCaption.textContent = memory.text; viewer.showModal(); };
-      memories.push({ el, angle: Math.random()*Math.PI*2, radius: rand(.22,.42), height: rand(.12,.26), wobble: rand(0,Math.PI*2), speed: rand(.65,1.25) });
+      memories.push({ el, angle: Math.random()*Math.PI*2, radius: rand(.58,.94), tilt: rand(.12,.76), node: rand(0,Math.PI*2), speed: rand(.42,.95) });
       requestAnimationFrame(()=>el.classList.add('visible'));
     }
     async function loadMemories() { try { (await fetch('/.netlify/functions/memories')).json().then(items => items.forEach(addMemory)); } catch (_) {} }

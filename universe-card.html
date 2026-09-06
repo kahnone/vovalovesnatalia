@@ -69,14 +69,18 @@
     }
     function heart(t) { const s=13; return { x:s*Math.pow(Math.sin(t),3), y:s*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))/16, z:0 }; }
     function glow(x,y,r,c,a=1) { const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0, c.replace(')', ','+a+')').replace('rgb','rgba')); g.addColorStop(.25,c.replace(')', ','+(a*.35)+')').replace('rgb','rgba')); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill(); }
-    function drawHeart() {
+    function drawHeart(now) {
       const scale=Math.min(w,h)*.017*zoom, cx=w/2, cy=h/2;
-      const pathAtDepth = depth => { const points=[]; for(let i=0;i<180;i++){ const base=heart(i/180*Math.PI*2); points.push(rotate({x:base.x,y:base.y,z:depth})); } ctx.beginPath(); points.forEach((p,i)=>{ const x=cx+p.x*scale, y=cy-p.y*scale; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.closePath(); };
+      const pathAtDepth = depth => { const points=[]; for(let i=0;i<180;i++){ const base=heart(i/180*Math.PI*2); const p=rotate({x:base.x,y:base.y,z:depth}); const perspective=540/(p.z+540); points.push({x:cx+p.x*scale*perspective,y:cy-p.y*scale*perspective}); } ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath(); };
       ctx.save();
-      for(let depth=-15; depth<9; depth+=3) { pathAtDepth(depth); ctx.fillStyle=`rgba(${90+depth*3},0,${45-depth},.76)`; ctx.fill(); }
-      ctx.shadowColor='#ff256b';ctx.shadowBlur=40;pathAtDepth(10);
-      const fill=ctx.createRadialGradient(cx-20,cy-20,2,cx,cy,130); fill.addColorStop(0,'#fff0f5');fill.addColorStop(.25,'#ff86ad');fill.addColorStop(.72,'#e81459');fill.addColorStop(1,'#72002c');ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='rgba(255,222,236,.75)';ctx.lineWidth=1.2;ctx.stroke();ctx.restore();
-      glow(cx,cy,145,'rgb(255,25,102)',.16);
+      for(let depth=-23; depth<14; depth+=3) { pathAtDepth(depth); const shade=Math.round(54+(depth+23)*3.7); ctx.fillStyle=`rgb(${shade}, 0, ${Math.max(20,shade-28)})`; ctx.fill(); }
+      ctx.shadowColor='#ff256b';ctx.shadowBlur=48;pathAtDepth(15);
+      const shineX=cx+Math.sin(yaw)*scale*9, shineY=cy-Math.sin(pitch)*scale*7;
+      const fill=ctx.createRadialGradient(shineX-scale*3,shineY-scale*4,2,cx,cy,scale*18); fill.addColorStop(0,'#fffdf7');fill.addColorStop(.13,'#ffe0a5');fill.addColorStop(.36,'#ff7a36');fill.addColorStop(.7,'#e20d42');fill.addColorStop(1,'#56001d');ctx.fillStyle=fill;ctx.fill();
+      ctx.save(); pathAtDepth(15); ctx.clip();
+      for(let i=0;i<34;i++){ const angle=i*2.399+now*.00018*(i%3+1), distance=(i%7+2)*scale*1.15; const x=cx+Math.cos(angle)*distance, y=cy+Math.sin(angle)*distance*.72; const radius=scale*(.28+(i%4)*.14); const flame=ctx.createRadialGradient(x,y,0,x,y,radius*5); flame.addColorStop(0,'rgba(255,245,179,.85)');flame.addColorStop(.25,'rgba(255,129,46,.42)');flame.addColorStop(1,'rgba(255,36,88,0)');ctx.fillStyle=flame;ctx.beginPath();ctx.arc(x,y,radius*5,0,Math.PI*2);ctx.fill(); }
+      ctx.restore();ctx.strokeStyle='rgba(255,221,177,.7)';ctx.lineWidth=1.25;ctx.stroke();ctx.restore();
+      glow(cx,cy,165,'rgb(255,43,91)',.22);
     }
     function drawMemoryTethers() {
       const cx=w/2, cy=h/2;
@@ -103,7 +107,7 @@
       for (const s of stars) { const p=rotate(s), f=600/(p.z+1900)*zoom; projected.push({s,p,x:w/2+p.x*f,y:h/2-p.y*f,f}); }
       projected.sort((a,b)=>a.p.z-b.p.z);
       for (const q of projected) { if(q.p.z<-1750) continue; const tw=.72+Math.sin(now*.0018+q.s.phase)*.28, r=Math.max(.35,q.s.size*q.f*2.2); ctx.globalAlpha=Math.min(1,.2+q.f)*tw; ctx.fillStyle=q.s.color; if(r<1.15) ctx.fillRect(q.x-r/2,q.y-r/2,r,r); else { ctx.beginPath();ctx.arc(q.x,q.y,r,0,Math.PI*2);ctx.fill(); } }
-      ctx.globalAlpha=1;ctx.shadowBlur=0; positionMemories(now); drawMemoryTethers(); drawHeart();
+      ctx.globalAlpha=1;ctx.shadowBlur=0; positionMemories(now); drawMemoryTethers(); drawHeart(now);
       if(!dragging) targetYaw += .00065;
       yaw += (targetYaw-yaw)*.16; pitch += (targetPitch-pitch)*.16;
       requestAnimationFrame(render);

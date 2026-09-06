@@ -71,16 +71,17 @@
     function glow(x,y,r,c,a=1) { const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0, c.replace(')', ','+a+')').replace('rgb','rgba')); g.addColorStop(.25,c.replace(')', ','+(a*.35)+')').replace('rgb','rgba')); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill(); }
     function drawHeart(now) {
       const scale=Math.min(w,h)*.017*zoom, cx=w/2, cy=h/2;
-      const pathAtDepth = depth => { const points=[]; for(let i=0;i<180;i++){ const base=heart(i/180*Math.PI*2); const p=rotate({x:base.x,y:base.y,z:depth}); const perspective=540/(p.z+540); points.push({x:cx+p.x*scale*perspective,y:cy-p.y*scale*perspective}); } ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath(); };
-      ctx.save();
-      for(let depth=-23; depth<14; depth+=3) { pathAtDepth(depth); const shade=Math.round(54+(depth+23)*3.7); ctx.fillStyle=`rgb(${shade}, 0, ${Math.max(20,shade-28)})`; ctx.fill(); }
-      ctx.shadowColor='#ff256b';ctx.shadowBlur=48;pathAtDepth(15);
-      const shineX=cx+Math.sin(yaw)*scale*9, shineY=cy-Math.sin(pitch)*scale*7;
-      const fill=ctx.createRadialGradient(shineX-scale*3,shineY-scale*4,2,cx,cy,scale*18); fill.addColorStop(0,'#fffdf7');fill.addColorStop(.13,'#ffe0a5');fill.addColorStop(.36,'#ff7a36');fill.addColorStop(.7,'#e20d42');fill.addColorStop(1,'#56001d');ctx.fillStyle=fill;ctx.fill();
-      ctx.save(); pathAtDepth(15); ctx.clip();
-      for(let i=0;i<34;i++){ const angle=i*2.399+now*.00018*(i%3+1), distance=(i%7+2)*scale*1.15; const x=cx+Math.cos(angle)*distance, y=cy+Math.sin(angle)*distance*.72; const radius=scale*(.28+(i%4)*.14); const flame=ctx.createRadialGradient(x,y,0,x,y,radius*5); flame.addColorStop(0,'rgba(255,245,179,.85)');flame.addColorStop(.25,'rgba(255,129,46,.42)');flame.addColorStop(1,'rgba(255,36,88,0)');ctx.fillStyle=flame;ctx.beginPath();ctx.arc(x,y,radius*5,0,Math.PI*2);ctx.fill(); }
-      ctx.restore();ctx.strokeStyle='rgba(255,221,177,.7)';ctx.lineWidth=1.25;ctx.stroke();ctx.restore();
-      glow(cx,cy,165,'rgb(255,43,91)',.22);
+      const silhouette = () => { const points=[]; for(let i=0;i<240;i++){ const p=heart(i/240*Math.PI*2); points.push({x:cx+p.x*scale,y:cy-p.y*scale}); } ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath(); };
+      const lightX=cx-scale*(6.2+Math.sin(yaw)*3), lightY=cy-scale*(8.2+Math.sin(pitch)*2.2);
+      ctx.save(); ctx.shadowColor='#ff205f'; ctx.shadowBlur=50; silhouette();
+      const body=ctx.createRadialGradient(lightX,lightY,scale*.6,cx,cy,scale*22);
+      body.addColorStop(0,'#fff7dc'); body.addColorStop(.1,'#ffd68a'); body.addColorStop(.28,'#ff7545'); body.addColorStop(.57,'#ef174b'); body.addColorStop(.82,'#9c0030'); body.addColorStop(1,'#350015'); ctx.fillStyle=body; ctx.fill(); ctx.shadowBlur=0;
+      ctx.save(); silhouette(); ctx.clip();
+      const shade=ctx.createRadialGradient(cx+scale*8,cy+scale*9,scale*2,cx+scale*7,cy+scale*8,scale*22); shade.addColorStop(0,'rgba(45,0,19,0)'); shade.addColorStop(.6,'rgba(48,0,20,.06)'); shade.addColorStop(1,'rgba(28,0,14,.7)'); ctx.fillStyle=shade; ctx.fillRect(cx-scale*20,cy-scale*24,scale*40,scale*48);
+      const gloss=ctx.createRadialGradient(lightX-scale*1.7,lightY-scale*1.7,0,lightX,lightY,scale*7); gloss.addColorStop(0,'rgba(255,255,255,.95)');gloss.addColorStop(.11,'rgba(255,235,201,.72)');gloss.addColorStop(.42,'rgba(255,157,95,.15)');gloss.addColorStop(1,'rgba(255,108,75,0)');ctx.fillStyle=gloss;ctx.beginPath();ctx.arc(lightX,lightY,scale*7,0,Math.PI*2);ctx.fill();
+      for(let i=0;i<18;i++){ const a=i*2.4+now*.0001*(i%4+1), r=scale*(2+(i%6)*1.4), x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r*.82, hot=ctx.createRadialGradient(x,y,0,x,y,scale*2.4); hot.addColorStop(0,'rgba(255,238,166,.22)');hot.addColorStop(.45,'rgba(255,89,48,.08)');hot.addColorStop(1,'rgba(255,30,83,0)');ctx.fillStyle=hot;ctx.beginPath();ctx.arc(x,y,scale*2.4,0,Math.PI*2);ctx.fill(); }
+      ctx.restore(); silhouette();ctx.strokeStyle='rgba(255,204,176,.48)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+      glow(cx,cy,175,'rgb(255,43,91)',.24);
     }
     function drawMemoryTethers() {
       const cx=w/2, cy=h/2;

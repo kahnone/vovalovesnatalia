@@ -1,6 +1,6 @@
 import { getStore } from '@netlify/blobs';
-import { json, requireTelegramUser } from './telegram-auth.mjs';
-import { getUniverseFor } from './universe-store.mjs';
+import { json, requireTelegramUser } from './auth-core.mjs';
+import { getUniverseFor } from './store-core.mjs';
 
 const store = () => getStore({ name: 'universe-memories', consistency: 'strong' });
 

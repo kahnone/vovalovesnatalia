@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Моя вселенная</title>
+  <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
   <style>
     * { box-sizing: border-box; }
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
@@ -43,8 +44,14 @@
   <div id="memories" aria-live="polite"></div>
   <nav class="controls" aria-label="Добавить воспоминание"><button id="add" type="button" aria-label="Добавить воспоминание">+</button></nav>
   <dialog id="memory-dialog"><form method="dialog"><h2>Новое воспоминание</h2><p>Выберите фотографию и добавьте к ней короткую подпись.</p><input id="memory-photo" type="file" accept="image/*" required><input id="memory-text" maxlength="80" autocomplete="off" placeholder="Подпись к фотографии" required><div class="dialog-actions"><button value="cancel" type="submit">Отмена</button><button id="save-memory" value="default" type="submit">Добавить</button></div></form></dialog>
+  <dialog id="action-dialog"><h2>Ваша вселенная</h2><p>Добавьте новое воспоминание или пригласите второго участника.</p><div class="dialog-actions"><button id="invite-partner" type="button">Пригласить</button><button id="open-memory" type="button">Добавить</button></div></dialog>
+  <dialog id="telegram-only"><h2>Откройте в Telegram</h2><p>Эта личная вселенная доступна только внутри мини-приложения Telegram.</p></dialog>
   <dialog id="memory-viewer"><button id="close-viewer" type="button" aria-label="Закрыть">×</button><img id="viewer-image" alt=""><p id="viewer-caption"></p></dialog>
   <script>
+    const telegram = window.Telegram?.WebApp;
+    let initData = '', universe = null;
+    const telegramOnly = document.getElementById('telegram-only');
+    const api = (path, options = {}) => fetch(path, { ...options, headers: { ...(options.headers || {}), 'X-Telegram-Init-Data': initData } });
     const canvas = document.getElementById('scene'), ctx = canvas.getContext('2d');
     const memoriesEl = document.getElementById('memories');
     let w, h, dpr, yaw = .35, pitch = -.16, targetYaw = yaw, targetPitch = pitch, zoom = .76, dragging = false, px = 0, py = 0, pinchDistance = 0;
@@ -134,11 +141,13 @@
       memories.push({ el, angle: Math.random()*Math.PI*2, radius: rand(.58,.94), tilt: rand(.12,.76), node: rand(0,Math.PI*2), speed: rand(.42,.95) });
       requestAnimationFrame(()=>el.classList.add('visible'));
     }
-    async function loadMemories() { try { (await fetch('/.netlify/functions/memories')).json().then(items => items.forEach(addMemory)); } catch (_) {} }
+    async function loadMemories() { try { const response=await api('/.netlify/functions/memories'); if(response.ok) (await response.json()).forEach(addMemory); } catch (_) {} }
     async function resizePhoto(file) { const image = await createImageBitmap(file); const ratio = Math.min(1, 960 / Math.max(image.width, image.height)); const c = document.createElement('canvas'); c.width=image.width*ratio; c.height=image.height*ratio; c.getContext('2d').drawImage(image,0,0,c.width,c.height); return c.toDataURL('image/jpeg',.82); }
-    loadMemories(); setInterval(loadMemories, 12000);
-    document.getElementById('add').onclick=()=>{dialog.showModal(); setTimeout(()=>photoInput.focus(), 30);};
-    dialog.addEventListener('close',async()=>{const text=input.value.trim(), photo=photoInput.files[0]; input.value=''; photoInput.value=''; if(dialog.returnValue!=='default' || !text || !photo) return; try { const response=await fetch('/.netlify/functions/memories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,photo:await resizePhoto(photo)})}); if(response.ok) addMemory(await response.json()); } catch (_) {} });
+    const actionDialog=document.getElementById('action-dialog');
+    document.getElementById('add').onclick=()=>actionDialog.showModal();
+    document.getElementById('open-memory').onclick=()=>{actionDialog.close();dialog.showModal();setTimeout(()=>photoInput.focus(),30);};
+    document.getElementById('invite-partner').onclick=async()=>{try{const response=await api('/.netlify/functions/invite',{method:'POST'});const data=await response.json();if(!response.ok) return telegram?.showAlert(data.error||'Не удалось создать приглашение.');const share=`https://t.me/share/url?url=${encodeURIComponent(data.url)}&text=${encodeURIComponent('Это наша личная вселенная 💗')}`;telegram?.openTelegramLink(share);actionDialog.close();}catch(_){telegram?.showAlert('Не удалось создать приглашение.');}};
+    dialog.addEventListener('close',async()=>{const text=input.value.trim(), photo=photoInput.files[0]; input.value=''; photoInput.value=''; if(dialog.returnValue!=='default' || !text || !photo) return; try { const response=await api('/.netlify/functions/memories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,photo:await resizePhoto(photo)})}); if(response.ok) addMemory(await response.json()); } catch (_) {} });
     document.getElementById('close-viewer').onclick=()=>viewer.close();
     const clampZoom = value => Math.max(.48, Math.min(1.55, value));
     const pointerDistance = () => { const [a,b] = [...pointers.values()]; return Math.hypot(a.x-b.x, a.y-b.y); };
@@ -147,6 +156,13 @@
     canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const distance=pointerDistance();if(pinchDistance)zoom=clampZoom(zoom*distance/pinchDistance);pinchDistance=distance;return;}if(!dragging)return;targetYaw+=(e.clientX-px)*.008;targetPitch=Math.max(-1.35,Math.min(1.35,targetPitch+(e.clientY-py)*.008));px=e.clientX;py=e.clientY;});
     function releasePointer(e){pointers.delete(e.pointerId);dragging=pointers.size===1;if(dragging){const point=[...pointers.values()][0];px=point.x;py=point.y;}else pinchDistance=0;canvas.classList.toggle('dragging',dragging);}
     canvas.addEventListener('pointerup',releasePointer);canvas.addEventListener('pointercancel',releasePointer);
+    async function startTelegramUniverse(){
+      if(!telegram?.initData){telegramOnly.showModal();return;}
+      telegram.ready();telegram.expand();initData=telegram.initData;
+      const startParam=telegram.initDataUnsafe?.start_param||new URLSearchParams(location.search).get('tgWebAppStartParam')||'';
+      try{const response=await api(`/.netlify/functions/universe${startParam?`?startParam=${encodeURIComponent(startParam)}`:''}`);const data=await response.json();if(!response.ok) return telegram.showAlert(data.error||'Не удалось открыть вселенную.');universe=data.universe;await loadMemories();setInterval(loadMemories,12000);}catch(_){telegram.showAlert('Нет соединения с вашей вселенной.');}
+    }
+    startTelegramUniverse();
   </script>
 </body>
 </html>

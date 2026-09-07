@@ -146,7 +146,7 @@
     const actionDialog=document.getElementById('action-dialog');
     document.getElementById('add').onclick=()=>actionDialog.showModal();
     document.getElementById('open-memory').onclick=()=>{actionDialog.close();dialog.showModal();setTimeout(()=>photoInput.focus(),30);};
-    document.getElementById('invite-partner').onclick=async()=>{try{const response=await api('/.netlify/functions/invite',{method:'POST'});const data=await response.json();if(!response.ok) return telegram?.showAlert(data.error||'Не удалось создать приглашение.');const share=`https://t.me/share/url?url=${encodeURIComponent(data.url)}&text=${encodeURIComponent('Это наша личная вселенная 💗')}`;telegram?.openTelegramLink(share);actionDialog.close();}catch(_){telegram?.showAlert('Не удалось создать приглашение.');}};
+    document.getElementById('invite-partner').onclick=async()=>{try{const response=await api('/.netlify/functions/invite-api',{method:'POST'});const data=await response.json();if(!response.ok) return telegram?.showAlert(data.error||'Не удалось создать приглашение.');const share=`https://t.me/share/url?url=${encodeURIComponent(data.url)}&text=${encodeURIComponent('Это наша личная вселенная 💗')}`;telegram?.openTelegramLink(share);actionDialog.close();}catch(_){telegram?.showAlert('Не удалось создать приглашение.');}};
     dialog.addEventListener('close',async()=>{const text=input.value.trim(), photo=photoInput.files[0]; input.value=''; photoInput.value=''; if(dialog.returnValue!=='default' || !text || !photo) return; try { const response=await api('/.netlify/functions/memories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,photo:await resizePhoto(photo)})}); if(response.ok) addMemory(await response.json()); } catch (_) {} });
     document.getElementById('close-viewer').onclick=()=>viewer.close();
     const clampZoom = value => Math.max(.48, Math.min(1.55, value));
@@ -160,7 +160,7 @@
       if(!telegram?.initData){telegramOnly.showModal();return;}
       telegram.ready();telegram.expand();initData=telegram.initData;
       const startParam=telegram.initDataUnsafe?.start_param||new URLSearchParams(location.search).get('tgWebAppStartParam')||'';
-      try{const response=await api(`/.netlify/functions/universe${startParam?`?startParam=${encodeURIComponent(startParam)}`:''}`);const data=await response.json();if(!response.ok) return telegram.showAlert(data.error||'Не удалось открыть вселенную.');universe=data.universe;await loadMemories();setInterval(loadMemories,12000);}catch(_){telegram.showAlert('Нет соединения с вашей вселенной.');}
+      try{const response=await api(`/.netlify/functions/universe-api${startParam?`?startParam=${encodeURIComponent(startParam)}`:''}`);const data=await response.json();if(!response.ok) return telegram.showAlert(data.error||'Не удалось открыть вселенную.');universe=data.universe;await loadMemories();setInterval(loadMemories,12000);}catch(_){telegram.showAlert('Нет соединения с вашей вселенной.');}
     }
     startTelegramUniverse();
   </script>
